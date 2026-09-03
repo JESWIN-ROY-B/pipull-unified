@@ -1,0 +1,15 @@
+import Razorpay from 'razorpay'
+import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { bookings } from '@/lib/db/schema'
+
+export async function POST(request: Request) {
+  const { bookingId } = await request.json()
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return Response.json({ error: 'Razorpay test keys are not configured' }, { status: 503 })
+  const [booking] = await db.select().from(bookings).where(eq(bookings.id, String(bookingId)))
+  if (!booking) return Response.json({ error: 'Booking not found' }, { status: 404 })
+  const razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET })
+  const order = await razorpay.orders.create({ amount: booking.total * 100, currency: 'INR', receipt: booking.id, notes: { bookingId: booking.id } })
+  await db.update(bookings).set({ razorpayOrderId: order.id }).where(eq(bookings.id, booking.id))
+  return Response.json({ orderId: order.id, keyId: process.env.RAZORPAY_KEY_ID, amount: order.amount, currency: order.currency })
+}
