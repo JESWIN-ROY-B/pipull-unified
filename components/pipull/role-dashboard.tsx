@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ArrowLeft, BadgeCheck, BriefcaseBusiness, CalendarDays, CheckCircle2, CircleHelp, Languages, LockKeyhole, LogOut, MapPin, MessageCircle, Search, ShieldCheck, Sparkles, Star, TrendingUp, Users, Vote, WalletCards, X, Home, Bell } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, BriefcaseBusiness, CalendarDays, CheckCircle2, ChevronDown, CircleHelp, Languages, LockKeyhole, LogOut, MapPin, MessageCircle, Search, ShieldCheck, Sparkles, Star, TrendingUp, Users, Vote, WalletCards, X, Home, Bell } from 'lucide-react'
 import { gigs, students } from '@/lib/pipull-data'
 import { rankMatches, getRoleLabel, type DemoAccount } from '@/lib/pipull-demo'
 import type { Gig, Student } from '@/lib/pipull-data'
@@ -53,4 +53,3 @@ function CirclesCard({ showNotice }: { showNotice: (text: string) => void }) {
 }
 
 function Metric({ icon, title, value, detail }: { icon: ReactNode; title: string; value: string; detail: string }) { return <article className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center gap-2 text-brand">{icon}<span className="text-sm font-semibold text-muted-foreground">{title}</span></div><p className="mt-4 text-2xl font-black">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></article> }
-
