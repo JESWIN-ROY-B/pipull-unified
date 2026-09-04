@@ -1,23 +1,44 @@
-import { eq } from 'drizzle-orm'
-import { db } from '@/lib/db'
-import { bookings, jobOffers, workers } from '@/lib/db/schema'
+import { connectMongo } from '@/lib/mongodb'
+import { Booking } from '@/lib/mongodb/models'
+
+const feeRate = 0.08
+
+function cleanItems(body: Record<string, unknown>) {
+  const items = Array.isArray(body.items) ? body.items : []
+  return items.map((item) => {
+    const value = item as Record<string, unknown>
+    const amount = Number(value.amount)
+    if (!value.id || !value.title || !Number.isFinite(amount) || amount < 1) throw new Error('Each booking item needs an id, title, and positive amount')
+    return { id: String(value.id), title: String(value.title).slice(0, 200), amount: Math.round(amount), quantity: Math.max(1, Number(value.quantity || 1)) }
+  })
+}
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const userId = String(body.userId || 'demo-user')
-  const kind = body.kind === 'emergency' ? 'emergency' : body.kind === 'request' ? 'request' : 'gig'
-  let amount = 0
-  let title = String(body.title || 'Pipull booking')
-  if (body.jobOfferId) { const [job] = await db.select().from(jobOffers).where(eq(jobOffers.id, String(body.jobOfferId))); if (!job) return Response.json({ error: 'Job not found' }, { status: 404 }); amount = job.offeredRate; title = job.title }
-  else if (body.workerId) { const [worker] = await db.select().from(workers).where(eq(workers.id, String(body.workerId))); if (!worker) return Response.json({ error: 'Worker not found' }, { status: 404 }); amount = worker.hourlyRate; title = title || `${worker.trade} booking` }
-  else { amount = Math.max(1, Number(body.amount || 25)) }
-  const platformFee = Math.round(amount * 0.08)
-  const [booking] = await db.insert(bookings).values({ id: `bkg_${crypto.randomUUID()}`, userId, workerId: body.workerId || null, jobOfferId: body.jobOfferId || null, kind, title, amount, platformFee, total: amount + platformFee }).returning()
-  return Response.json({ booking })
+  try {
+    const body = await request.json() as Record<string, unknown>
+    const userId = String(body.userId || '').trim()
+    if (!userId) return Response.json({ error: 'userId is required' }, { status: 400 })
+    const items = cleanItems(body)
+    if (!items.length) return Response.json({ error: 'At least one booking item is required' }, { status: 400 })
+    const subtotal = items.reduce((sum, item) => sum + item.amount * item.quantity, 0)
+    const platformFee = Math.round(subtotal * feeRate)
+    await connectMongo()
+    const booking = await Booking.create({ userId, workerId: body.workerId ? String(body.workerId) : undefined, title: String(body.title || items[0].title), lineItems: items, subtotal, platformFee, total: subtotal + platformFee, currency: 'INR', status: 'pending' })
+    return Response.json({ booking })
+  } catch (error) {
+    console.error('Booking creation failed', error)
+    return Response.json({ error: error instanceof Error ? error.message : 'Booking creation failed' }, { status: 400 })
+  }
 }
 
 export async function GET(request: Request) {
-  const userId = new URL(request.url).searchParams.get('userId')
+  const userId = new URL(request.url).searchParams.get('userId')?.trim()
   if (!userId) return Response.json({ error: 'userId is required' }, { status: 400 })
-  return Response.json({ bookings: await db.select().from(bookings).where(eq(bookings.userId, userId)) })
+  try {
+    await connectMongo()
+    return Response.json({ bookings: await Booking.find({ userId }).sort({ createdAt: -1 }).lean() })
+  } catch (error) {
+    console.error('Booking lookup failed', error)
+    return Response.json({ error: 'Booking lookup failed' }, { status: 503 })
+  }
 }

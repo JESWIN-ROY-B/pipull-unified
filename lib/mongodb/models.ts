@@ -21,8 +21,8 @@ const profileSchema = new Schema({
 }, { timestamps: true })
 
 const bookingSchema = new Schema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  workerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+  userId: { type: String, required: true, index: true },
+  workerId: { type: String, index: true },
   title: { type: String, required: true, trim: true },
   lineItems: [{ id: String, title: String, amount: { type: Number, min: 0 }, quantity: { type: Number, min: 1, default: 1 } }],
   subtotal: { type: Number, required: true, min: 1 },
