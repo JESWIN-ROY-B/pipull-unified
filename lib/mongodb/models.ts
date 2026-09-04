@@ -2,6 +2,7 @@ import { Schema, model, models, type InferSchemaType } from 'mongoose'
 
 const userSchema = new Schema({
   name: { type: String, required: true, trim: true, maxlength: 120 },
+  username: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
   email: { type: String, required: true, unique: true, lowercase: true, index: true },
   phone: { type: String, required: true, unique: true, index: true },
   passwordHash: { type: String, required: true, select: false },

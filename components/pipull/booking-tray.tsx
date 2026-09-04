@@ -34,6 +34,7 @@ export function BookingTray({
   accountId: string
 }) {
   const [paymentState, setPaymentState] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+  const [paymentError, setPaymentError] = useState('')
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -191,29 +192,29 @@ export function BookingTray({
             )}
             {paymentState === 'error' && (
               <p role="alert" className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
-                Something went wrong setting up secure checkout. No charge was made — please try again.
+                {paymentError || 'Something went wrong setting up secure checkout. No charge was made — please try again.'}
               </p>
             )}
             <button
               type="button"
               disabled={paymentState === 'pending' || paymentState === 'success'}
               onClick={async () => {
-                setPaymentState('pending')
+                setPaymentState('pending'); setPaymentError('')
                 try {
                   const bookingResponse = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: accountId, items: items.map((item) => ({ id: item.id, title: item.title, amount: item.price, kind: item.kind })) }) })
-                  if (!bookingResponse.ok) throw new Error('Booking failed')
+                  if (!bookingResponse.ok) { const detail = await bookingResponse.json().catch(() => ({})) as { error?: string }; throw new Error(detail.error || 'Booking failed') }
                   const { booking } = await bookingResponse.json()
                   const orderResponse = await fetch('/api/payments/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId: booking.id }) })
-                  if (!orderResponse.ok) throw new Error('Payment setup failed')
+                  if (!orderResponse.ok) { const detail = await orderResponse.json().catch(() => ({})) as { error?: string }; throw new Error(detail.error || 'Payment setup failed') }
                   const order = await orderResponse.json()
                   const checkout = (window as Window & { Razorpay?: new (options: Record<string, unknown>) => { open: () => void } }).Razorpay
-                  if (!checkout) throw new Error('Razorpay is unavailable')
+                  if (!checkout) throw new Error('Razorpay checkout is still loading. Please wait a moment and try again.')
                   new checkout({ key: order.keyId, amount: order.amount, currency: order.currency, name: 'Pipull', description: `Booking ${booking.id}`, order_id: order.orderId, handler: async (response: { razorpay_payment_id: string; razorpay_signature: string }) => {
                     const verification = await fetch('/api/payments/verify-signature', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId: booking.id, ...response }) })
-                    if (!verification.ok) throw new Error('Payment verification failed')
+                    if (!verification.ok) { const detail = await verification.json().catch(() => ({})) as { error?: string }; throw new Error(detail.error || 'Payment verification failed') }
                     setPaymentState('success')
                   }, modal: { ondismiss: () => setPaymentState('idle') } }).open()
-                } catch { setPaymentState('error') }
+                } catch (error) { setPaymentError(error instanceof Error ? error.message : 'Payment setup failed'); setPaymentState('error') }
               }}
               className="mt-3 min-h-12 w-full rounded-xl bg-brand px-4 py-3.5 text-sm font-semibold text-brand-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
             >
