@@ -21,6 +21,7 @@ const profileSchema = new Schema({
 }, { timestamps: true })
 
 const bookingSchema = new Schema({
+  id: { type: String, required: true, unique: true, index: true },
   userId: { type: String, required: true, index: true },
   workerId: { type: String, index: true },
   title: { type: String, required: true, trim: true },

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const subtotal = items.reduce((sum, item) => sum + item.amount * item.quantity, 0)
     const platformFee = Math.round(subtotal * feeRate)
     await connectMongo()
-    const booking = await Booking.create({ userId, workerId: body.workerId ? String(body.workerId) : undefined, title: String(body.title || items[0].title), lineItems: items, subtotal, platformFee, total: subtotal + platformFee, currency: 'INR', status: 'pending' })
+    const booking = await Booking.create({ id: `bkg_${crypto.randomUUID()}`, userId, workerId: body.workerId ? String(body.workerId) : undefined, title: String(body.title || items[0].title), lineItems: items, subtotal, platformFee, total: subtotal + platformFee, currency: 'INR', status: 'pending' })
     return Response.json({ booking })
   } catch (error) {
     console.error('Booking creation failed', error)
