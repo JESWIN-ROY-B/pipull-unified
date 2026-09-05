@@ -33,9 +33,10 @@ export async function POST(request: Request) {
     const action = String(body.action || '')
     if (!memberId) return Response.json({ error: 'memberId is required' }, { status: 400 })
     await connectMongo(); await seed(memberId)
-    if (action === 'create-request' || action === 'create-circle') {
-      const title = String(body.title || (action === 'create-circle' ? 'New Skill Circle' : 'Cooperative service request')).slice(0, 200)
-      const created = await CooperativeRequest.create({ id: `req_${crypto.randomUUID()}`, memberId, title, kind: action === 'create-circle' ? 'circle' : 'service', amount: Math.max(0, Number(body.amount || 0)), metadata: { skills: body.skills || [], serviceArea: body.serviceArea || 'Local' } })
+    if (action === 'create-request' || action === 'create-circle' || action === 'create-listing') {
+      const title = String(body.title || (action === 'create-circle' ? 'New Skill Circle' : action === 'create-listing' ? 'Cooperative lookout' : 'Cooperative service request')).slice(0, 200)
+      const listingType = String(body.listingType || '')
+      const created = await CooperativeRequest.create({ id: `req_${crypto.randomUUID()}`, memberId, title, kind: action === 'create-circle' ? 'circle' : listingType === 'seek-work' || listingType === 'offer-service' ? 'work' : 'service', amount: Math.max(0, Number(body.amount || 0)), metadata: { intent: listingType || 'service-request', keywords: body.keywords || [], description: body.description || '', serviceArea: body.serviceArea || 'Local' } })
       return Response.json({ request: created }, { status: 201 })
     }
     if (action === 'vote') {
