@@ -10,6 +10,7 @@ import type { DemoAccount } from '@/lib/pipull-demo'
 
 export default function Page() {
   const [account, setAccount] = useState<DemoAccount | null>(null)
+  const [hydrated, setHydrated] = useState(false)
   const [tray, setTray] = useState<BookingItem[]>([])
   const [trayOpen, setTrayOpen] = useState(false)
 
@@ -18,6 +19,7 @@ export default function Page() {
       const saved = window.localStorage.getItem('pipull-account')
       if (saved) setAccount(JSON.parse(saved) as DemoAccount)
     } catch { window.localStorage.removeItem('pipull-account') }
+    finally { setHydrated(true) }
   }, [])
 
   function login(nextAccount: DemoAccount) {
@@ -36,6 +38,7 @@ export default function Page() {
     setTrayOpen(true)
   }
 
+  if (!hydrated) return <main className="grid min-h-dvh place-items-center bg-surface"><p className="text-sm font-semibold text-muted-foreground">Loading your cooperative workspace…</p></main>
   if (!account) return <AuthScreen onLogin={login} />
 
   return <>
