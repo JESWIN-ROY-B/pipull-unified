@@ -62,10 +62,49 @@ const cooperativeRequestSchema = new Schema({
   memberId: { type: String, required: true, index: true },
   title: { type: String, required: true, maxlength: 200 },
   kind: { type: String, enum: ['service', 'work', 'circle'], default: 'service' },
-  status: { type: String, enum: ['open', 'matched', 'active', 'completed', 'cancelled'], default: 'open', index: true },
+  status: { type: String, enum: ['open', 'matched', 'accepted', 'declined', 'active', 'completed', 'cancelled', 'expired'], default: 'open', index: true },
   amount: { type: Number, min: 0, default: 0 },
   workerId: String,
+  expiresAt: { type: Date, required: true, index: true },
+  acceptedBy: String,
+  requesterName: String,
+  requesterPhone: String,
+  contactShared: { type: Boolean, default: false },
+  reliability: { requester: { type: Number, default: 0 }, responder: { type: Number, default: 0 } },
   metadata: { type: Schema.Types.Mixed, default: {} },
+}, { timestamps: true })
+
+const offerThreadSchema = new Schema({
+  requestId: { type: String, required: true, index: true },
+  memberId: { type: String, required: true, index: true },
+  authorName: { type: String, required: true },
+  message: { type: String, required: true, maxlength: 2000 },
+  private: { type: Boolean, default: true },
+}, { timestamps: true })
+
+const notificationSchema = new Schema({
+  memberId: { type: String, required: true, index: true },
+  type: { type: String, required: true },
+  title: { type: String, required: true },
+  body: { type: String, required: true },
+  read: { type: Boolean, default: false, index: true },
+  requestId: String,
+}, { timestamps: true })
+
+const availabilitySchema = new Schema({
+  memberId: { type: String, required: true, index: true },
+  date: { type: String, required: true },
+  occupancy: { type: Number, min: 0, max: 100, default: 0 },
+}, { timestamps: true })
+availabilitySchema.index({ memberId: 1, date: 1 }, { unique: true })
+
+const forumPostSchema = new Schema({
+  memberId: { type: String, required: true, index: true },
+  authorName: { type: String, required: true },
+  title: { type: String, required: true, maxlength: 180 },
+  body: { type: String, required: true, maxlength: 4000 },
+  tags: { type: [String], default: [] },
+  replies: { type: Number, default: 0 },
 }, { timestamps: true })
 
 const proposalSchema = new Schema({
@@ -108,3 +147,7 @@ export const CooperativeRequest = models.CooperativeRequest || model('Cooperativ
 export const Proposal = models.Proposal || model('Proposal', proposalSchema)
 export const Vote = models.Vote || model('Vote', voteSchema)
 export const CooperativeActivity = models.CooperativeActivity || model('CooperativeActivity', cooperativeActivitySchema)
+export const OfferThread = models.OfferThread || model('OfferThread', offerThreadSchema)
+export const Notification = models.Notification || model('Notification', notificationSchema)
+export const Availability = models.Availability || model('Availability', availabilitySchema)
+export const ForumPost = models.ForumPost || model('ForumPost', forumPostSchema)
