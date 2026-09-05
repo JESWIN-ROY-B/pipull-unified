@@ -46,9 +46,65 @@ const paymentEventSchema = new Schema({
   processedAt: { type: Date, default: Date.now },
 }, { timestamps: true })
 
+const membershipSchema = new Schema({
+  memberId: { type: String, required: true, unique: true, index: true },
+  membershipType: { type: String, enum: ['worker-member', 'customer-member', 'partner', 'steward'], default: 'worker-member' },
+  status: { type: String, enum: ['active', 'pending', 'suspended'], default: 'active', index: true },
+  votingPower: { type: Number, default: 1, min: 0 },
+  benefitEligibility: { type: Boolean, default: true },
+  surplusParticipation: { type: Boolean, default: true },
+  skills: { type: [String], default: [] },
+  availability: { type: String, default: 'Immediate' },
+}, { timestamps: true })
+
+const cooperativeRequestSchema = new Schema({
+  id: { type: String, required: true, unique: true, index: true },
+  memberId: { type: String, required: true, index: true },
+  title: { type: String, required: true, maxlength: 200 },
+  kind: { type: String, enum: ['service', 'work', 'circle'], default: 'service' },
+  status: { type: String, enum: ['open', 'matched', 'active', 'completed', 'cancelled'], default: 'open', index: true },
+  amount: { type: Number, min: 0, default: 0 },
+  workerId: String,
+  metadata: { type: Schema.Types.Mixed, default: {} },
+}, { timestamps: true })
+
+const proposalSchema = new Schema({
+  id: { type: String, required: true, unique: true, index: true },
+  title: { type: String, required: true, maxlength: 240 },
+  description: { type: String, required: true, maxlength: 2000 },
+  status: { type: String, enum: ['active', 'passed', 'rejected', 'closed'], default: 'active', index: true },
+  closesAt: { type: Date, required: true },
+  yes: { type: Number, default: 0, min: 0 },
+  no: { type: Number, default: 0, min: 0 },
+  abstain: { type: Number, default: 0, min: 0 },
+}, { timestamps: true })
+
+const voteSchema = new Schema({
+  proposalId: { type: String, required: true, index: true },
+  memberId: { type: String, required: true, index: true },
+  choice: { type: String, enum: ['yes', 'no', 'abstain'], required: true },
+}, { timestamps: true })
+voteSchema.index({ proposalId: 1, memberId: 1 }, { unique: true })
+
+const cooperativeActivitySchema = new Schema({
+  memberId: { type: String, required: true, index: true },
+  period: { type: String, enum: ['daily', 'weekly', 'monthly'], required: true },
+  jobs: { type: Number, default: 0 },
+  earnings: { type: Number, default: 0 },
+  votes: { type: Number, default: 0 },
+  communityFund: { type: Number, default: 0 },
+  skillCircles: { type: Number, default: 0 },
+}, { timestamps: true })
+cooperativeActivitySchema.index({ memberId: 1, period: 1 }, { unique: true })
+
 export type UserDocument = InferSchemaType<typeof userSchema>
 export type BookingDocument = InferSchemaType<typeof bookingSchema>
 export const User = models.User || model('User', userSchema)
 export const Profile = models.Profile || model('Profile', profileSchema)
 export const Booking = models.Booking || model('Booking', bookingSchema)
 export const PaymentEvent = models.PaymentEvent || model('PaymentEvent', paymentEventSchema)
+export const Membership = models.Membership || model('Membership', membershipSchema)
+export const CooperativeRequest = models.CooperativeRequest || model('CooperativeRequest', cooperativeRequestSchema)
+export const Proposal = models.Proposal || model('Proposal', proposalSchema)
+export const Vote = models.Vote || model('Vote', voteSchema)
+export const CooperativeActivity = models.CooperativeActivity || model('CooperativeActivity', cooperativeActivitySchema)
